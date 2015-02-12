@@ -1,0 +1,7 @@
+*.o
+*.d
+*~
+pcl_difference
+pcl_intersection
+pcl_symmetric_difference
+pcl_union

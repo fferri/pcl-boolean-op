@@ -3,7 +3,7 @@ PCL_VERSION=1.7
 PCL_CFLAGS = $(shell sh -c 'for i in $(PCL_MODULES); do pkg-config pcl_$${i}-$(PCL_VERSION) --cflags; done')
 PCL_LDLIBS = $(shell sh -c 'for i in $(PCL_MODULES); do pkg-config pcl_$${i}-$(PCL_VERSION) --libs; done')
 
-CFLAGS := -std=c++03 -O0 -ggdb -I/opt/local/include $(OPT_CFLAGS)
+CFLAGS := -std=c++03 -O0 -ggdb -I/opt/local/include $(PCL_CFLAGS) $(OPT_CFLAGS)
 LDLIBS := -lm -lstdc++ -L/opt/local/lib $(PCL_LDLIBS)
 
 ifeq ($(OS),Windows_NT)
@@ -47,9 +47,9 @@ CXXFLAGS = $(CFLAGS)
 
 .PHONY: clean all
 
-OBJS = pcl_union.o pcl_intersection.o pcl_difference.o pcl_common.o
+OBJS = pcl_union.o pcl_intersection.o pcl_difference.o pcl_symmetric_difference.o pcl_common.o
 
-all: pcl_union pcl_intersection pcl_difference
+all: pcl_union pcl_intersection pcl_difference pcl_symmetric_difference
 
 pcl_union: pcl_union.o pcl_common.o
 	$(CC) $^ $(LDLIBS) -o $@
@@ -58,6 +58,9 @@ pcl_intersection: pcl_intersection.o pcl_common.o
 	$(CC) $^ $(LDLIBS) -o $@
 
 pcl_difference: pcl_difference.o pcl_common.o
+	$(CC) $^ $(LDLIBS) -o $@
+
+pcl_symmetric_difference: pcl_symmetric_difference.o pcl_common.o
 	$(CC) $^ $(LDLIBS) -o $@
 
 -include $(OBJS:.o=.d)
