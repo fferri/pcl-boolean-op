@@ -1,2 +1,6 @@
 # pcl-boolean-op
-Boolean operations (union, intersection, difference) on 3D Point Clouds
+
+A set of utilities for performing boolean operations, such as union, intersection, and difference, on 3D point clouds.
+
+Requires libpcl [http://pointclouds.org/]
+
