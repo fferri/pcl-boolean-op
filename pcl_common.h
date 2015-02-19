@@ -20,4 +20,14 @@ public:
     double z() const;
 };
 
+void load_pcd(const char *filename, pcl::PointCloud<pcl::PointXYZ>& cloud);
+
+void save_pcd(const char *filename, const pcl::PointCloud<pcl::PointXYZ>& cloud);
+
+void pcl_to_set(const pcl::PointCloud<pcl::PointXYZ>& cloud, std::set<point>& s);
+
+void set_to_pcl(const std::set<point>& s, pcl::PointCloud<pcl::PointXYZ>& cloud);
+
+int parse_args(int argc, char **argv);
+
 void op(std::set<point>& a, std::set<point>& b, std::set<point>& c);

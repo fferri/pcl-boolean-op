@@ -58,16 +58,16 @@ all: $(TARGETS)
 install: $(TARGETS)
 	for i in $(TARGETS); do cp -v $$i $(PREFIX)/bin/; done
 
-pcl_union: pcl_union.o pcl_common.o
+pcl_union: pcl_union.o pcl_common.o main.o
 	$(CC) $^ $(LDLIBS) -o $@
 
-pcl_intersection: pcl_intersection.o pcl_common.o
+pcl_intersection: pcl_intersection.o pcl_common.o main.o
 	$(CC) $^ $(LDLIBS) -o $@
 
-pcl_difference: pcl_difference.o pcl_common.o
+pcl_difference: pcl_difference.o pcl_common.o main.o
 	$(CC) $^ $(LDLIBS) -o $@
 
-pcl_symmetric_difference: pcl_symmetric_difference.o pcl_common.o
+pcl_symmetric_difference: pcl_symmetric_difference.o pcl_common.o main.o
 	$(CC) $^ $(LDLIBS) -o $@
 
 -include $(OBJS:.o=.d)
