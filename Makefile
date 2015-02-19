@@ -45,11 +45,18 @@ endif
 
 CXXFLAGS = $(CFLAGS)
 
-.PHONY: clean all
+.PHONY: clean all install
 
 OBJS = pcl_union.o pcl_intersection.o pcl_difference.o pcl_symmetric_difference.o pcl_common.o
 
-all: pcl_union pcl_intersection pcl_difference pcl_symmetric_difference
+TARGETS = pcl_union pcl_intersection pcl_difference pcl_symmetric_difference
+
+PREFIX = /usr/local
+
+all: $(TARGETS)
+
+install: $(TARGETS)
+	for i in $(TARGETS); do cp -v $$i $(PREFIX)/bin/; done
 
 pcl_union: pcl_union.o pcl_common.o
 	$(CC) $^ $(LDLIBS) -o $@
