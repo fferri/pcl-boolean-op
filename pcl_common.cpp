@@ -167,7 +167,7 @@ int main(int argc, char **argv)
         namec_ss << "pcl_" << (j - i);
         namec = namec_ss.str();
 
-        std::cout << namea << " * " << nameb << " = " << namec << std::endl;
+        std::cout << namea << " * " << nameb << " = " << namec << " (" << c.size() << " points)" << std::endl;
 
         first_operand = false;
     }
