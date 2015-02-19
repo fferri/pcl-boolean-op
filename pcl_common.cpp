@@ -1,4 +1,5 @@
 #include "pcl_common.h"
+#include <sstream>
 
 double tolerance = 1e-9;
 
@@ -77,7 +78,7 @@ double point::z() const
 
 void usage(const char *self)
 {
-    std::cout << "usage: " << self << " [options] cloud_a.pcd cloud_b.pcd result.pcd" << std::endl
+    std::cout << "usage: " << self << " [options] cloud_1.pcd ... cloud_N.pcd result.pcd" << std::endl
         << "options:" << std::endl
         << "  --tolerance <t>" << std::endl
         << "  -t <t>            two points are considered equal if:" << std::endl
@@ -109,6 +110,7 @@ int main(int argc, char **argv)
 {
     if(argc < 4)
     {
+        std::cout << "error: need at least 3 point clouds" << std::endl;
         usage(argv[0]);
         exit(1);
     }
@@ -126,21 +128,55 @@ int main(int argc, char **argv)
         std::cout << "info: using default tolerance of " << tolerance << std::endl;
     }
 
-    if(argc != (i + 2 + 1))
+    if(argc < (i + 2 + 1))
     {
+        std::cout << "error: need at least 3 point clouds" << std::endl;
         usage(argv[0]);
         exit(1);
     }
 
-    pcl::PointCloud<pcl::PointXYZ> a, b, c;
-    std::set<point> sa, sb, sc;
-    load_pcd(argv[i++], a);
-    load_pcd(argv[i++], b);
-    pcl_to_set(a, sa);
-    pcl_to_set(b, sb);
-    op(sa, sb, sc);
-    set_to_pcl(sc, c);
-    save_pcd(argv[i++], c);
+    pcl::PointCloud<pcl::PointXYZ> tmp;
+    std::set<point> a, b, c;
+    std::string namea, nameb, namec;
+
+    bool first_operand = true;
+
+    load_pcd(argv[i], tmp);
+    namea = argv[i];
+    pcl_to_set(tmp, a);
+
+    for(int j = i + 1; j < (argc - 1); j++)
+    {
+        if(!first_operand)
+        {
+            c.swap(a);
+            namea = namec;
+        }
+
+        b.clear();
+        c.clear();
+        tmp.clear();
+
+        load_pcd(argv[j], tmp);
+        nameb = argv[j];
+        pcl_to_set(tmp, b);
+
+        op(a, b, c);
+
+        std::stringstream namec_ss;
+        namec_ss << "pcl_" << (j - i);
+        namec = namec_ss.str();
+
+        std::cout << namea << " * " << nameb << " = " << namec << std::endl;
+
+        first_operand = false;
+    }
+
+    std::cout << "result is " << namec << std::endl;
+
+    tmp.clear();
+    set_to_pcl(c, tmp);
+    save_pcd(argv[argc - 1], tmp);
 }
 
 
