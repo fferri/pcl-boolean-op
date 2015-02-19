@@ -23,57 +23,45 @@ void save_pcd(const char *filename, const pcl::PointCloud<pcl::PointXYZ>& cloud)
     std::cout << "info: saved " << cloud.size() << " points to " << filename << std::endl;
 }
 
-point::point(double x, double y, double z) : x_(x), y_(y), z_(z)
+point::point(double x, double y, double z)
 {
+    ix_ = (long)round(x / tolerance);
+    iy_ = (long)round(y / tolerance);
+    iz_ = (long)round(z / tolerance);
 }
 
 bool point::operator<(const point& rhs) const
 {
-    if(ix() == rhs.ix())
+    if(ix_ == rhs.ix_)
     {
-        if(iy() == rhs.iy())
+        if(iy_ == rhs.iy_)
         {
-            return iz() < rhs.iz();
+            return iz_ < rhs.iz_;
         }
         else
         {
-            return iy() < rhs.iy();
+            return iy_ < rhs.iy_;
         }
     }
     else
     {
-        return ix() < rhs.ix();
+        return ix_ < rhs.ix_;
     }
-}
-
-long point::ix() const
-{
-    return (long)round(x_ / tolerance);
-}
-
-long point::iy() const
-{
-    return (long)round(y_ / tolerance);
-}
-
-long point::iz() const
-{
-    return (long)round(z_ / tolerance);
 }
 
 double point::x() const
 {
-    return x_;
+    return ix_ * tolerance;
 }
 
 double point::y() const
 {
-    return y_;
+    return iy_ * tolerance;
 }
 
 double point::z() const
 {
-    return z_;
+    return iz_ * tolerance;
 }
 
 void usage(const char *self)

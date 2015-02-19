@@ -6,15 +6,12 @@
 class point
 {
 private:
-    double x_;
-    double y_;
-    double z_;
+    long ix_;
+    long iy_;
+    long iz_;
 public:
     point(double x_, double y_, double z_);
     bool operator<(const point& rhs) const;
-    long ix() const;
-    long iy() const;
-    long iz() const;
     double x() const;
     double y() const;
     double z() const;
