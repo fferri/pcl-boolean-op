@@ -35,7 +35,7 @@ int main(int argc, char **argv)
         pcl::PointCloud<pcl::PointXYZ> tmp2;
         pcl::fromPCLPointCloud2(tmp, tmp2);
 
-        Eigen::Vector4f t_ = t;
+        Eigen::Vector4f t_;
         Eigen::Matrix3f R_ = R;
         if(j > 1)
         {
@@ -48,7 +48,9 @@ int main(int argc, char **argv)
         float roll = euler(2,0);
         std::cout << "NODE "
             << t_(0) << " " << t_(1) << " " << t_(2) << " "
-            << roll << " " << pitch << " " << yaw << std::endl;
+            //<< roll << " " << pitch << " " << yaw
+            << "0 0 0"
+            << std::endl;
 
         for(size_t i = 0; i < tmp2.size(); i++)
             std::cout << tmp2[i].x << " " << tmp2[i].y << " " << tmp2[i].z << std::endl;
