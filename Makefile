@@ -47,9 +47,9 @@ CXXFLAGS = $(CFLAGS)
 
 .PHONY: clean all install
 
-OBJS = pcl_union.o pcl_intersection.o pcl_difference.o pcl_symmetric_difference.o pcl_common.o main.o pcl_union_fast.o pcl_make_scanlog.o
+OBJS = pcl_union.o pcl_intersection.o pcl_difference.o pcl_symmetric_difference.o pcl_common.o main.o pcl_union_fast.o pcl_make_scanlog.o pcl_remove_dynamic_obstacles.o
 
-TARGETS = pcl_union pcl_intersection pcl_difference pcl_symmetric_difference pcl_union_fast pcl_make_scanlog
+TARGETS = pcl_union pcl_intersection pcl_difference pcl_symmetric_difference pcl_union_fast pcl_make_scanlog pcl_remove_dynamic_obstacles
 
 PREFIX = /usr/local
 
@@ -74,6 +74,9 @@ pcl_union_fast: pcl_union_fast.o pcl_common.o
 	$(CC) $^ $(LDLIBS) -o $@
 
 pcl_make_scanlog: pcl_make_scanlog.o
+	$(CC) $^ $(LDLIBS) -o $@
+
+pcl_remove_dynamic_obstacles: pcl_remove_dynamic_obstacles.o
 	$(CC) $^ $(LDLIBS) -o $@
 
 -include $(OBJS:.o=.d)
