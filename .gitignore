@@ -7,3 +7,4 @@ pcl_symmetric_difference
 pcl_union
 pcl_union_fast
 pcl_make_scanlog
+pcl_remove_dynamic_obstacles
