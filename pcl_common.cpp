@@ -1,14 +1,23 @@
 #include "pcl_common.h"
 #include <sstream>
 
+bool ignore_read_errors = true;
+
 double tolerance = 1e-9;
 
 void load_pcd(const char *filename, pcl::PointCloud<pcl::PointXYZ>& cloud)
 {
-    if(pcl::io::loadPCDFile<pcl::PointXYZ>(filename, cloud) == -1)
+    if(pcl::io::loadPCDFile<pcl::PointXYZ>(filename, cloud) == -1 && !ignore_read_errors)
     {
-        std::cerr << "error: load of " << filename << " failed" << std::endl;
-        exit(1);
+        if(ignore_read_errors)
+        {
+            cloud.clear();
+        }
+        else
+        {
+            std::cerr << "error: load of " << filename << " failed" << std::endl;
+            exit(1);
+        }
     }
     std::cout << "info: loaded " << cloud.size() << " points from " << filename << std::endl;
 }
