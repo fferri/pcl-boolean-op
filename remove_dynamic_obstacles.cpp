@@ -1,13 +1,19 @@
-#include "pcl_common.h"
-
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/radius_outlier_removal.h>
 
 #include <boost/make_shared.hpp>
 
 #ifndef M_2PI
 #define M_2PI (2 * M_PI)
 #endif
+
+template<typename PointA, typename PointB>
+inline double dist(const PointA& a, const PointB& b)
+{
+    return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2));
+}
 
 inline size_t flatBucket(const size_t bucket1, const size_t bucket2, const size_t subdivisions)
 {
@@ -31,14 +37,14 @@ inline void bucketToAngle(const size_t bucket1, const size_t bucket2, double& th
 }
 
 template<typename T>
-inline void coordsSphericalToEuclidean(double r, double theta, double phi, T& x, T& y, T& z, double offsetX = 0, double offsetY = 0, double offsetZ = 0)
+inline void toEuclidean(double r, double theta, double phi, T& x, T& y, T& z, double offsetX = 0, double offsetY = 0, double offsetZ = 0)
 {
     x = offsetX + r * sin(theta) * cos(phi);
     y = offsetY + r * sin(theta) * sin(phi);
     z = offsetZ + r * cos(theta);
 }
 
-inline void coordsEuclideanToSpherical(double x, double y, double z, double& r, double& theta, double& phi, double offsetX = 0, double offsetY = 0, double offsetZ = 0)
+inline void toSpherical(double x, double y, double z, double& r, double& theta, double& phi, double offsetX = 0, double offsetY = 0, double offsetZ = 0)
 {
     // radius [0..infty):
     r = sqrt(pow(x - offsetX, 2) + pow(y - offsetY, 2) + pow(z - offsetZ, 2));
@@ -56,7 +62,7 @@ void sphericalPartition(const pcl::PointCloud<PointT>& input, pcl::PointCloud<Po
     {
         const PointT& p = input.points[i];
         double r, theta, phi;
-        coordsEuclideanToSpherical(p.x, p.y, p.z, r, theta, phi, center.x, center.y, center.z);
+        toSpherical(p.x, p.y, p.z, r, theta, phi, center.x(), center.y(), center.z());
         size_t bucket1 = 0, bucket2 = 0;
         angleToBucket(theta, phi, bucket1, bucket2, subdivisions);
         output[flatBucket(bucket1, bucket2, subdivisions)].push_back(p);
@@ -66,10 +72,23 @@ void sphericalPartition(const pcl::PointCloud<PointT>& input, pcl::PointCloud<Po
 template<typename PointT>
 void removeDynamicObstacles(const pcl::PointCloud<PointT>& s, const pcl::PointCloud<PointT>& scan, Eigen::Vector4f scan_pos, Eigen::Quaternionf scan_orient, pcl::PointCloud<PointT>& result, int num_subdivisions)
 {
-    pcl::PointCloud<PointT> scan_partition[num_subdivisions * num_subdivisions],
-        s_partition[num_subdivisions * num_subdivisions];
+    // remove outliers from scan:
+    pcl::PointCloud<PointT> scan_f;
+    pcl::RadiusOutlierRemoval<PointT> ror;
+    ror.setInputCloud(scan.makeShared());
+    ror.setRadiusSearch(0.05);
+    ror.setMinNeighborsInRadius(3);
+    ror.filter(scan_f);
 
-    sphericalPartition(scan, scan_partition, scan_pos, num_subdivisions);
+    pcl::PointXYZ scan_pos_p;
+    scan_pos_p.x = scan_pos.x();
+    scan_pos_p.y = scan_pos.y();
+    scan_pos_p.z = scan_pos.z();
+
+    pcl::PointCloud<PointT> scan_partition[num_subdivisions * num_subdivisions];
+    pcl::PointCloud<PointT> s_partition[num_subdivisions * num_subdivisions];
+
+    sphericalPartition(scan_f, scan_partition, scan_pos, num_subdivisions);
     sphericalPartition(s, s_partition, scan_pos, num_subdivisions);
 
     for(size_t bucket1 = 0; bucket1 < num_subdivisions; bucket1++)
@@ -78,138 +97,69 @@ void removeDynamicObstacles(const pcl::PointCloud<PointT>& s, const pcl::PointCl
         {
             size_t bucket = flatBucket(bucket1, bucket2, num_subdivisions);
 
-            BucketVolume_MinDistance<Point_In, Point_Out> v_min(bucket1, bucket2, config);
-            BucketVolume_Plane<Point_In, Point_Out> v_rsc(bucket1, bucket2, config);
-            v_min.estimate(pcl_scan_partition[bucket], laser_center);
-            BucketVolume<Point_In, Point_Out> *pv = &v_min;
+            // find min distance:
+            double min_dist = INFINITY;
+            for(size_t i = 0; i < scan_partition[bucket].size(); i++)
+                min_dist = std::min(min_dist, dist(scan_pos_p, scan_partition[bucket][i]));
+            if(isinf(min_dist))
+                min_dist = 0.0;
 
-            if(pcl_scan_partition[bucket].size() >= 4)
+            // add points from map that do not fall into deletion volume:
+            for(size_t j = 0; j < s_partition[bucket].size(); j++)
             {
-                // we have enough points for fitting a plane...
+                double d = dist(scan_pos_p, s_partition[bucket][j]);
 
-                if(config.bucket_volume_model_type == DynamicJoinPcl_BucketVolumeModelType_SinglePlane)
+                if(d >= min_dist)
                 {
-                    if(v_rsc.estimate(pcl_scan_partition[bucket], laser_center))
-                    {
-                        BucketVolume_MaxDistance<Point_In, Point_Out> v_max(bucket1, bucket2, config);
-                        v_max.estimate(pcl_scan_partition[bucket], laser_center);
-                        double v = v_rsc.getVolume(laser_center);
-                        if(v >= v_min.getVolume(laser_center) && v <= v_max.getVolume(laser_center))
-                        {
-                            //ROS_INFO("plane: <%f, %f, %f, %f>", v_rsc.plane.values[0], v_rsc.plane.values[1], v_rsc.plane.values[2], v_rsc.plane.values[3]);
-                            pv = &v_rsc;
-                        }
-                        else
-                        {
-                            //ROS_WARN("plane(bad volume): <%f, %f, %f, %f>, dist: %f", v_rsc.plane.values[0], v_rsc.plane.values[1], v_rsc.plane.values[2], v_rsc.plane.values[3], v_min.distance);
-                        }
-                    }
-                    else
-                    {
-                        //ROS_INFO("plane estimation failed. using min dist with dist=%f", v_min.distance);
-                    }
-                }
-                Quad quad;
-                pv->getQuad(laser_center, quad);
-                colorizePointInBucket1(quad.color, bucket1, bucket2, config.num_subdivisions);
-                quads.push_back(quad);
-            }
-
-            // add points from map that do not fall into deletion volume
-            for(size_t j = 0; j < pcl_map_partition[bucket].size(); j++)
-            {
-                double d = dist(laser_center, pcl_map_partition[bucket][j]);
-
-                if(pcl_scan_partition[bucket].size() < 4 ||
-                        !pv->testPointForRemoval(pcl_map_partition[bucket][j], laser_center, 0.05 + d * 0.1))
-                {
-                    if(config.colorize_points)
-                        colorizePointInBucket1(pcl_map_partition[bucket][j], bucket1, bucket2, config.num_subdivisions);
-
-                    pcl_map_new.push_back(pcl_map_partition[bucket][j]);
+                    result.push_back(s_partition[bucket][j]);
                 }
             }
 
-            // add all points from scan
-            for(size_t j = 0; j < pcl_scan_partition[bucket].size(); j++)
+            // add all points from scan:
+            for(size_t j = 0; j < scan_partition[bucket].size(); j++)
             {
-                Point_Out p;
-                copyPoint(pcl_scan_partition[bucket][j], p);
-
-                if(config.colorize_points)
-                    colorizePointInBucket1(p, bucket1, bucket2, config.num_subdivisions);
-
-                pcl_map_new.push_back(p);
+                result.push_back(scan_partition[bucket][j]);
             }
         }
     }
-
-    // re-add far points
-    for(size_t i = 0; i < pcl_map_far.size(); i++)
-    {
-        pcl_map_new.push_back(pcl_map_far[i]);
-    }
-
-    PointCloud_Out temp;
-    temp.header = pcl_map_new.header;
-
-    // downsample
-    pcl::VoxelGrid<Point_Out> sor;
-    sor.setInputCloud(pcl_map_new.makeShared());
-    sor.setLeafSize(config.leaf_size, config.leaf_size, config.leaf_size);
-    sor.filter(temp);
-
-    pcl_map_new.swap(temp);
-}
-
-void op(std::set<point>& a, std::set<point>& b, std::set<point>& c)
-{
-    set_union(a.begin(), a.end(), b.begin(), b.end(), std::inserter(c, c.begin()));
 }
 
 int main(int argc, char **argv)
 {
-    int i = parse_args(argc, argv);
-
-    pcl::PointCloud<pcl::PointXYZ> tmp;
-    std::vector<std::set<point> > pcl;
-
-    for(int j = i, k = 0; j < (argc - 1); j++, k++)
+    if(argc != 4)
     {
-        pcl.resize(pcl.size() + 1);
-        tmp.clear();
-        load_pcd(argv[j], tmp);
-        pcl_to_set(tmp, pcl[k]);
+        std::cout << "usage: " << argv[0] << " <S_t-1> <Scan> <result>" << std::endl;
+        return 1;
     }
 
-    std::cout << "loaded " << pcl.size() << " point clouds" << std::endl;
+    Eigen::Vector4f t;
+    Eigen::Quaternionf q;
+    pcl::PCLPointCloud2 s2, scan2;
+    pcl::PointCloud<pcl::PointXYZ> s, scan, result;
 
-    while(pcl.size() > 1)
+    if(pcl::io::loadPCDFile(argv[1], s2) == -1)
     {
-        int l2 = (pcl.size() + 1) / 2;
-        std::cout << "pcl size = " << pcl.size() << " will become " << l2 << std::endl;
-
-        for(int j = 0; j < l2; j++)
-        {
-            std::set<point> c;
-            if((2*j+1) < pcl.size())
-            {
-                op(pcl[2*j], pcl[2*j+1], c);
-                std::cout << "computed union of " << (2*j) << " and " << (2*j+1) << std::endl;
-            }
-            else
-            {
-                pcl[2*j].swap(c);
-                std::cout << "copy " << (2*j) << " to next level" << std::endl;
-            }
-            pcl[j].swap(c);
-        }
-        pcl.resize(l2);
-        std::cout << "------------------------------" << std::endl;
+        std::cerr << "error: load of " << argv[1] << " failed" << std::endl;
+        return 1;
     }
+    pcl::fromPCLPointCloud2(s2, s);
+    std::cout << "info: loaded " << s.size() << " points from " << argv[1] << std::endl;
 
-    tmp.clear();
-    set_to_pcl(pcl[0], tmp);
-    save_pcd(argv[argc - 1], tmp);
+    if(pcl::io::loadPCDFile(argv[2], scan2, t, q) == -1)
+    {
+        std::cerr << "error: load of " << argv[2] << " failed" << std::endl;
+        return 1;
+    }
+    pcl::fromPCLPointCloud2(scan2, scan);
+    std::cout << "info: loaded " << scan.size() << " points from " << argv[2] << std::endl;
+
+    removeDynamicObstacles(s, scan, t, q, result, 64);
+
+    if(pcl::io::savePCDFile<pcl::PointXYZ>(argv[3], result) == -1)
+    {
+        std::cerr << "error: write of " << argv[3] << " failed" << std::endl;
+        return 1;
+    }
+    std::cout << "info: wrote " << result.size() << " points to " << argv[3] << std::endl;
 }
 
