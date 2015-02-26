@@ -153,7 +153,7 @@ int main(int argc, char **argv)
     pcl::fromPCLPointCloud2(scan2, scan);
     std::cout << "info: loaded " << scan.size() << " points from " << argv[2] << std::endl;
 
-    removeDynamicObstacles(s, scan, t, q, result, 64);
+    removeDynamicObstacles(s, scan, t, q, result, 150);
 
     if(pcl::io::savePCDFile<pcl::PointXYZ>(argv[3], result) == -1)
     {
