@@ -1,3 +1,6 @@
+#ifndef PCL_COMMON_H_INCLUDED
+#define PCL_COMMON_H_INCLUDED
+
 #include <cmath>
 #include <iostream>
 #include <pcl/io/pcd_io.h>
@@ -28,3 +31,5 @@ void set_to_pcl(const std::set<point>& s, pcl::PointCloud<pcl::PointXYZ>& cloud)
 int parse_args(int argc, char **argv);
 
 void op(std::set<point>& a, std::set<point>& b, std::set<point>& c);
+
+#endif // PCL_COMMON_H_INCLUDED
