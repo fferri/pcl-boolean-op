@@ -11,6 +11,22 @@ void usage(const char *self, int exitcode)
     exit(exitcode);
 }
 
+void loadPCL(const char *filename, pcl::PointCloud<pcl::PointXYZ>& cloud, Eigen::Vector4f& t, Eigen::Matrix3f R)
+{
+        pcl::PCLPointCloud2 tmp;
+        Eigen::Quaternionf r;
+        if(pcl::io::loadPCDFile(filename, tmp, t, r) == -1)
+        {
+            std::cerr << "error: load of " << filename << " failed" << std::endl;
+            exit(1);
+        }
+        pcl::fromPCLPointCloud2(tmp, cloud);
+        r.normalize();
+        R = r.toRotationMatrix();
+}
+
+#define IGNORE_ROTATION
+
 int main(int argc, char **argv)
 {
     Eigen::Vector4f last_t;
@@ -21,39 +37,39 @@ int main(int argc, char **argv)
 
     for(int j = 1; j < argc; j++)
     {
-        pcl::PCLPointCloud2 tmp;
         Eigen::Vector4f t;
-        Eigen::Quaternionf r;
-        if(pcl::io::loadPCDFile(argv[j], tmp, t, r) == -1)
-        {
-            std::cerr << "error: load of " << argv[j] << " failed" << std::endl;
-            exit(1);
-        }
-        r.normalize();
-        Eigen::Matrix3f R = r.toRotationMatrix();
-
+        Eigen::Matrix3f R;
         pcl::PointCloud<pcl::PointXYZ> tmp2;
-        pcl::fromPCLPointCloud2(tmp, tmp2);
 
-        Eigen::Vector4f t_;
-        Eigen::Matrix3f R_ = R;
-        if(j > 1)
-        {
-            t_ = t - last_t;
-            R_ = last_R.inverse() * R;
-        }
-        Eigen::Matrix<float,3,1> euler = R_.eulerAngles(2, 1, 0);
+        loadPCL(argv[j], tmp2, t, R);
+
+#ifndef IGNORE_ROTATION
+        Eigen::Matrix<float,3,1> euler = R.eulerAngles(2, 1, 0);
         float yaw = euler(0,0);
         float pitch = euler(1,0);
         float roll = euler(2,0);
+#endif
         std::cout << "NODE "
-            << t_(0) << " " << t_(1) << " " << t_(2) << " "
-            //<< roll << " " << pitch << " " << yaw
+            << t(0) << " " << t(1) << " " << t(2) << " "
+#ifdef IGNORE_ROTATION
             << "0 0 0"
+#else
+            << roll << " " << pitch << " " << yaw
+#endif
             << std::endl;
 
         for(size_t i = 0; i < tmp2.size(); i++)
-            std::cout << tmp2[i].x << " " << tmp2[i].y << " " << tmp2[i].z << std::endl;
+        {
+            Eigen::Vector3f p, t3;
+            p << tmp2[i].x, tmp2[i].y, tmp2[i].z;
+            t3 << t.x(), t.y(), t.z();
+#ifdef IGNORE_ROTATION
+            p = p - t3;
+#else
+            p = R.inverse() * p - t3;
+#endif
+            std::cout << p.x() << " " << p.y() << " " << p.z() << std::endl;
+        }
 
         last_t = t;
         last_R = R;
