@@ -8,3 +8,4 @@ pcl_union
 pcl_union_fast
 pcl_make_scanlog
 pcl_remove_dynamic_obstacles
+pcl_jaccard_similarity
