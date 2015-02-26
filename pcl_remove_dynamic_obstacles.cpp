@@ -77,7 +77,7 @@ void removeDynamicObstacles(const pcl::PointCloud<PointT>& s, const pcl::PointCl
     pcl::RadiusOutlierRemoval<PointT> ror;
     ror.setInputCloud(scan.makeShared());
     ror.setRadiusSearch(0.1);
-    ror.setMinNeighborsInRadius(3);
+    ror.setMinNeighborsInRadius(2);
     ror.filter(scan_f);
 
     pcl::PointXYZ scan_pos_p;
