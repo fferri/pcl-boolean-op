@@ -23,8 +23,8 @@ inline size_t flatBucket(const size_t bucket1, const size_t bucket2, const size_
 inline void angleToBucket(double theta, double phi, size_t& bucket1, size_t& bucket2, const size_t subdivisions)
 {
     // normalize angles between 0,2PI
-    while(phi < 0) phi += 2 * M_PI;
-    while(theta < 0) theta += 2 * M_PI;
+    while(phi < 0) phi += M_2PI;
+    while(theta < 0) theta += M_PI;
 
     bucket1 = (size_t)(phi * subdivisions / M_2PI);
     bucket2 = (size_t)(theta * subdivisions / M_PI);
