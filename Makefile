@@ -28,7 +28,7 @@ else
 		ifneq ($(filter arm%,$(UNAME_P)),)
 			CFLAGS += -DARM
 		endif
-        LDLIBS += -lboost_system -lboost_thread -lboost_filesystem
+        LDLIBS += -lboost_system -lboost_thread -lboost_filesystem -lboost_program_options
     endif
     ifeq ($(UNAME_S),Darwin)
         CFLAGS += -DOSX
@@ -39,7 +39,7 @@ else
 		ifneq ($(filter %86,$(UNAME_M)),)
 			CFLAGS += -DIA32
 		endif
-        LDLIBS += -lboost_system-mt -lboost_thread-mt -lboost_filesystem-mt
+        LDLIBS += -lboost_system-mt -lboost_thread-mt -lboost_filesystem-mt -lboost_program_options-mt
     endif
 endif
 

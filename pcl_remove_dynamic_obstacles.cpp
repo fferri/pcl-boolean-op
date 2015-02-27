@@ -4,10 +4,14 @@
 #include <pcl/filters/radius_outlier_removal.h>
 
 #include <boost/make_shared.hpp>
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
 
 #ifndef M_2PI
 #define M_2PI (2 * M_PI)
 #endif
+
+int subdivisions = 64;
 
 template<typename PointA, typename PointB>
 inline double dist(const PointA& a, const PointB& b)
@@ -126,40 +130,75 @@ void removeDynamicObstacles(const pcl::PointCloud<PointT>& s, const pcl::PointCl
 
 int main(int argc, char **argv)
 {
-    if(argc != 4)
-    {
-        std::cout << "usage: " << argv[0] << " <S_t-1> <Scan> <result>" << std::endl;
-        return 1;
-    }
+    namespace po = boost::program_options;
+    po::options_description desc("Usage: pcl_remove_dynamic_obstacles [options] s.pcd scan.pcd result.pcd\nOptions:");
+    desc.add_options()
+        ("subdivisions,s", po::value<int>(&subdivisions)->default_value(subdivisions), "number of subdivisions")
+        ("help", "print help")
+    ;
+    po::options_description hdesc("Hidden");
+    hdesc.add_options()
+        ("input-s,i", po::value<std::string>(), "s input file")
+        ("input-scan,j", po::value<std::string>(), "scan input file")
+        ("output,o", po::value<std::string>(), "output file")
+    ;
+    po::positional_options_description p;
+    p.add("input-s", 1);
+    p.add("input-scan", 1);
+    p.add("output", 1);
+    po::variables_map vmap;
+    po::store(po::command_line_parser(argc, argv).options(desc).options(hdesc).positional(p).run(), vmap);
+    po::notify(vmap);
 
     Eigen::Vector4f t;
     Eigen::Quaternionf q;
     pcl::PCLPointCloud2 s2, scan2;
     pcl::PointCloud<pcl::PointXYZ> s, scan, result;
 
-    if(pcl::io::loadPCDFile(argv[1], s2) == -1)
+    std::string s_fn;
+    std::string scan_fn;
+    std::string result_fn;
+    try
     {
-        std::cerr << "error: load of " << argv[1] << " failed" << std::endl;
+        s_fn = vmap["input-s"].as<std::string>();
+        scan_fn = vmap["input-scan"].as<std::string>();
+        result_fn = vmap["output"].as<std::string>();
+    }
+    catch(boost::bad_any_cast& ex)
+    {
+        std::cout << desc << std::endl;
+        exit(1);
+    }
+
+    if(vmap.count("help"))
+    {
+        std::cout << desc << std::endl;
+        exit(0);
+    }
+
+    if(pcl::io::loadPCDFile(s_fn, s2) == -1)
+    {
+        std::cerr << "error: load of " << s_fn << " failed" << std::endl;
         return 1;
     }
     pcl::fromPCLPointCloud2(s2, s);
-    std::cout << "info: loaded " << s.size() << " points from " << argv[1] << std::endl;
+    std::cout << "info: loaded " << s.size() << " points from " << s_fn << std::endl;
 
-    if(pcl::io::loadPCDFile(argv[2], scan2, t, q) == -1)
+    if(pcl::io::loadPCDFile(scan_fn, scan2, t, q) == -1)
     {
-        std::cerr << "error: load of " << argv[2] << " failed" << std::endl;
+        std::cerr << "error: load of " << scan_fn << " failed" << std::endl;
         return 1;
     }
     pcl::fromPCLPointCloud2(scan2, scan);
-    std::cout << "info: loaded " << scan.size() << " points from " << argv[2] << std::endl;
+    std::cout << "info: loaded " << scan.size() << " points from " << scan_fn << std::endl;
 
-    removeDynamicObstacles(s, scan, t, q, result, 150);
+    removeDynamicObstacles(s, scan, t, q, result, subdivisions);
 
-    if(pcl::io::savePCDFile<pcl::PointXYZ>(argv[3], result) == -1)
+    if(pcl::io::savePCDFile<pcl::PointXYZ>(result_fn, result) == -1)
     {
-        std::cerr << "error: write of " << argv[3] << " failed" << std::endl;
+        std::cerr << "error: write of " << result_fn << " failed" << std::endl;
         return 1;
     }
-    std::cout << "info: wrote " << result.size() << " points to " << argv[3] << std::endl;
+    std::cout << "info: wrote " << result.size() << " points to " << result_fn << std::endl;
 }
 
