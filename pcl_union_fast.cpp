@@ -20,12 +20,11 @@ int main(int argc, char **argv)
         pcl_to_set(tmp, pcl[k]);
     }
 
-    std::cout << "loaded " << pcl.size() << " point clouds" << std::endl;
+    //std::cout << "loaded " << pcl.size() << " point clouds" << std::endl;
 
     while(pcl.size() > 1)
     {
         int l2 = (pcl.size() + 1) / 2;
-        std::cout << "pcl size = " << pcl.size() << " will become " << l2 << std::endl;
 
         for(int j = 0; j < l2; j++)
         {
@@ -33,17 +32,14 @@ int main(int argc, char **argv)
             if((2*j+1) < pcl.size())
             {
                 op(pcl[2*j], pcl[2*j+1], c);
-                std::cout << "computed union of " << (2*j) << " and " << (2*j+1) << std::endl;
             }
             else
             {
                 pcl[2*j].swap(c);
-                std::cout << "copy " << (2*j) << " to next level" << std::endl;
             }
             pcl[j].swap(c);
         }
         pcl.resize(l2);
-        std::cout << "------------------------------" << std::endl;
     }
 
     tmp.clear();
