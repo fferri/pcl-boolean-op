@@ -43,20 +43,15 @@ int main(int argc, char **argv)
 
         loadPCL(argv[j], tmp2, t, R);
 
-#ifndef IGNORE_ROTATION
+#ifdef IGNORE_ROTATION
+        std::cout << "NODE " << t(0) << " " << t(1) << " " << t(2) << " 0 0 0" << std::endl;
+#else
         Eigen::Matrix<float,3,1> euler = R.eulerAngles(2, 1, 0);
         float yaw = euler(0,0);
         float pitch = euler(1,0);
         float roll = euler(2,0);
+        std::cout << "NODE " << t(0) << " " << t(1) << " " << t(2) << " " << roll << " " << pitch << " " << yaw << std::endl;
 #endif
-        std::cout << "NODE "
-            << t(0) << " " << t(1) << " " << t(2) << " "
-#ifdef IGNORE_ROTATION
-            << "0 0 0"
-#else
-            << roll << " " << pitch << " " << yaw
-#endif
-            << std::endl;
 
         for(size_t i = 0; i < tmp2.size(); i++)
         {
