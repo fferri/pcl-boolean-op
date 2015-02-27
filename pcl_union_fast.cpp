@@ -7,20 +7,22 @@ void op(std::set<point>& a, std::set<point>& b, std::set<point>& c)
 
 int main(int argc, char **argv)
 {
-    int i = parse_args(argc, argv);
+    parse_args(argc, argv);
 
     pcl::PointCloud<pcl::PointXYZ> tmp;
     std::vector<std::set<point> > pcl;
 
-    for(int j = i, k = 0; j < (argc - 1); j++, k++)
+    int k = 0;
+    pcl.resize(input_filenames.size());
+    for(std::vector<std::string>::iterator it = input_filenames.begin(); it != input_filenames.end(); ++it)
     {
-        pcl.resize(pcl.size() + 1);
+        load_pcd(it->c_str(), tmp);
+        pcl_to_set(tmp, pcl[k++]);
         tmp.clear();
-        load_pcd(argv[j], tmp);
-        pcl_to_set(tmp, pcl[k]);
     }
 
-    //std::cout << "loaded " << pcl.size() << " point clouds" << std::endl;
+    if(verbose)
+        std::cout << "loaded " << pcl.size() << " point clouds" << std::endl;
 
     while(pcl.size() > 1)
     {
@@ -42,8 +44,7 @@ int main(int argc, char **argv)
         pcl.resize(l2);
     }
 
-    tmp.clear();
     set_to_pcl(pcl[0], tmp);
-    save_pcd(argv[argc - 1], tmp);
+    save_pcd(output_filename.c_str(), tmp);
 }
 

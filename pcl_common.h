@@ -6,6 +6,12 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
+extern bool ignore_read_errors;
+extern bool verbose;
+extern double tolerance;
+extern std::vector<std::string> input_filenames;
+extern std::string output_filename;
+
 class point
 {
 private:
@@ -28,7 +34,7 @@ void pcl_to_set(const pcl::PointCloud<pcl::PointXYZ>& cloud, std::set<point>& s)
 
 void set_to_pcl(const std::set<point>& s, pcl::PointCloud<pcl::PointXYZ>& cloud);
 
-int parse_args(int argc, char **argv);
+void parse_args(int argc, char **argv);
 
 void op(std::set<point>& a, std::set<point>& b, std::set<point>& c);
 

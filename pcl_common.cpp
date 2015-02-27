@@ -1,9 +1,14 @@
 #include "pcl_common.h"
 #include <sstream>
 
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
+
 bool ignore_read_errors = true;
 bool verbose = false;
 double tolerance = 1e-9;
+std::vector<std::string> input_filenames;
+std::string output_filename;
 
 void load_pcd(const char *filename, pcl::PointCloud<pcl::PointXYZ>& cloud)
 {
@@ -75,15 +80,6 @@ double point::z() const
     return iz_ * tolerance;
 }
 
-void usage(const char *self)
-{
-    std::cout << "usage: " << self << " [options] cloud_1.pcd ... cloud_N.pcd result.pcd" << std::endl
-        << "options:" << std::endl
-        << "  --tolerance <t>" << std::endl
-        << "  -t <t>            two points are considered equal if:" << std::endl
-        << "                    |x1-x2|<t && |y1-y2|<t && |z1-z2|<t" << std::endl;
-}
-
 void pcl_to_set(const pcl::PointCloud<pcl::PointXYZ>& cloud, std::set<point>& s)
 {
     for(int i = 0; i < cloud.size(); i++)
@@ -105,37 +101,75 @@ void set_to_pcl(const std::set<point>& s, pcl::PointCloud<pcl::PointXYZ>& cloud)
     }
 }
 
-int parse_args(int argc, char **argv)
+void parse_args(int argc, char **argv)
 {
-    if(argc < 4)
+    namespace po = boost::program_options;
+    std::string usage = "Usage: " + std::string(argv[0]) + " [options] input_1.pcd input_2.pcd ... input_N.pcd result.pcd";
+    po::options_description desc(usage + "\nOptions:");
+    desc.add_options()
+        ("tolerance,t", po::value<double>(&tolerance)->default_value(tolerance), "tolerance ( = voxel size)")
+        ("stop-on-errors,S", "stop when a readnig error occurs")
+        ("verbose,v", "verbose mode")
+        ("help,h", "print help")
+    ;
+    po::options_description hdesc("Hidden");
+    hdesc.add_options()
+        ("file,f", po::value<std::vector<std::string> >(), "file")
+    ;
+    po::options_description desc_all;
+    desc_all.add(desc).add(hdesc);
+    po::positional_options_description p;
+    p.add("file", -1);
+    po::variables_map vmap;
+    po::store(po::command_line_parser(argc, argv).options(desc_all).positional(p).run(), vmap);
+    po::notify(vmap);
+
+    if(vmap.count("help"))
     {
-        std::cout << "error: need at least 3 point clouds" << std::endl;
-        usage(argv[0]);
+        std::cout << desc << std::endl;
+        exit(0);
+    }
+
+    if(vmap.count("stop-on-errors"))
+    {
+        ignore_read_errors = false;
+    }
+
+    if(vmap.count("verbose"))
+    {
+        verbose = true;
+    }
+
+    try
+    {
+        std::vector<std::string> filenames = vmap["file"].as<std::vector<std::string> >();
+        if(filenames.size() < 3)
+        {
+            std::cout << "error: need at least 3 file arguments (got " << filenames.size() << ")" << std::endl << desc << std::endl;
+            exit(1);
+        }
+        input_filenames.resize(filenames.size() - 1);
+        std::copy(filenames.begin(), filenames.begin() + filenames.size() - 1, input_filenames.begin());
+        output_filename = filenames[filenames.size() - 1];
+    }
+    catch(boost::bad_any_cast& ex)
+    {
+        std::cout << desc << std::endl;
         exit(1);
     }
 
-    int i = 1;
-
-    if(strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--tolerance") == 0)
+    if(verbose)
     {
-        tolerance = atof(argv[i + 1]);
-        if(verbose)
+        if(vmap.count("tolerance"))
             std::cout << "info: tolerance set to " << tolerance << std::endl;
-        i += 2;
-    }
-    else
-    {
-        if(verbose)
+        else
             std::cout << "info: using default tolerance of " << tolerance << std::endl;
     }
 
-    if(argc < (i + 2 + 1))
+    if(input_filenames.size() < 2)
     {
-        std::cout << "error: need at least 3 point clouds" << std::endl;
-        usage(argv[0]);
+        std::cout << "error: need at least 2 input clouds and 1 output cloud" << std::endl << desc << std::endl;
         exit(1);
     }
-
-    return i;
 }
 

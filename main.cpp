@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-    int i = parse_args(argc, argv);
+    parse_args(argc, argv);
 
     pcl::PointCloud<pcl::PointXYZ> tmp;
     std::set<point> a, b, c;
@@ -10,11 +10,11 @@ int main(int argc, char **argv)
 
     bool first_operand = true;
 
-    load_pcd(argv[i], tmp);
-    namea = argv[i];
+    namea = input_filenames[0];
+    load_pcd(namea.c_str(), tmp);
     pcl_to_set(tmp, a);
 
-    for(int j = i + 1; j < (argc - 1); j++)
+    for(int i = 1; i < input_filenames.size(); i++)
     {
         if(!first_operand)
         {
@@ -26,24 +26,26 @@ int main(int argc, char **argv)
         c.clear();
         tmp.clear();
 
-        load_pcd(argv[j], tmp);
-        nameb = argv[j];
+        nameb = input_filenames[i];
+        load_pcd(nameb.c_str(), tmp);
         pcl_to_set(tmp, b);
 
         op(a, b, c);
 
         std::stringstream namec_ss;
-        namec_ss << "pcl_" << (j - i);
+        namec_ss << "pcl_" << i;
         namec = namec_ss.str();
 
-        std::cout << namea << " * " << nameb << " = " << namec << " (" << c.size() << " points)" << std::endl;
+        if(verbose)
+            std::cout << namea << " * " << nameb << " = " << namec << " (" << c.size() << " points)" << std::endl;
 
         first_operand = false;
     }
 
-    std::cout << "result is " << namec << std::endl;
+    if(verbose)
+        std::cout << "result is " << namec << std::endl;
 
     tmp.clear();
     set_to_pcl(c, tmp);
-    save_pcd(argv[argc - 1], tmp);
+    save_pcd(output_filename.c_str(), tmp);
 }

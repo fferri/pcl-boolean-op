@@ -134,7 +134,7 @@ int main(int argc, char **argv)
     po::options_description desc("Usage: pcl_remove_dynamic_obstacles [options] s.pcd scan.pcd result.pcd\nOptions:");
     desc.add_options()
         ("subdivisions,s", po::value<int>(&subdivisions)->default_value(subdivisions), "number of subdivisions")
-        ("help", "print help")
+        ("help,h", "print help")
     ;
     po::options_description hdesc("Hidden");
     hdesc.add_options()
