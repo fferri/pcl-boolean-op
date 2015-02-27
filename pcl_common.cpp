@@ -2,7 +2,7 @@
 #include <sstream>
 
 bool ignore_read_errors = true;
-
+bool verbose = false;
 double tolerance = 1e-9;
 
 void load_pcd(const char *filename, pcl::PointCloud<pcl::PointXYZ>& cloud)
@@ -19,7 +19,8 @@ void load_pcd(const char *filename, pcl::PointCloud<pcl::PointXYZ>& cloud)
             exit(1);
         }
     }
-    std::cout << "info: loaded " << cloud.size() << " points from " << filename << std::endl;
+    if(verbose)
+        std::cout << "info: loaded " << cloud.size() << " points from " << filename << std::endl;
 }
 
 void save_pcd(const char *filename, const pcl::PointCloud<pcl::PointXYZ>& cloud)
@@ -29,7 +30,8 @@ void save_pcd(const char *filename, const pcl::PointCloud<pcl::PointXYZ>& cloud)
         std::cerr << "error: save of " << filename << " failed" << std::endl;
         exit(1);
     }
-    std::cout << "info: saved " << cloud.size() << " points to " << filename << std::endl;
+    if(verbose)
+        std::cout << "info: saved " << cloud.size() << " points to " << filename << std::endl;
 }
 
 point::point(double x, double y, double z)
@@ -117,12 +119,14 @@ int parse_args(int argc, char **argv)
     if(strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--tolerance") == 0)
     {
         tolerance = atof(argv[i + 1]);
-        std::cout << "info: tolerance set to " << tolerance << std::endl;
+        if(verbose)
+            std::cout << "info: tolerance set to " << tolerance << std::endl;
         i += 2;
     }
     else
     {
-        std::cout << "info: using default tolerance of " << tolerance << std::endl;
+        if(verbose)
+            std::cout << "info: using default tolerance of " << tolerance << std::endl;
     }
 
     if(argc < (i + 2 + 1))
