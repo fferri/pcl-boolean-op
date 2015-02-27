@@ -142,12 +142,14 @@ int main(int argc, char **argv)
         ("input-scan,j", po::value<std::string>(), "scan input file")
         ("output,o", po::value<std::string>(), "output file")
     ;
+    po::options_description desc_all;
+    desc_all.add(desc).add(hdesc);
     po::positional_options_description p;
     p.add("input-s", 1);
     p.add("input-scan", 1);
     p.add("output", 1);
     po::variables_map vmap;
-    po::store(po::command_line_parser(argc, argv).options(desc).options(hdesc).positional(p).run(), vmap);
+    po::store(po::command_line_parser(argc, argv).options(desc_all).positional(p).run(), vmap);
     po::notify(vmap);
 
     Eigen::Vector4f t;
