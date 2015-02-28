@@ -11,6 +11,7 @@
 #define M_2PI (2 * M_PI)
 #endif
 
+bool verbose = false;
 int subdivisions = 64;
 
 template<typename PointA, typename PointB>
@@ -134,6 +135,7 @@ int main(int argc, char **argv)
     po::options_description desc("Usage: pcl_remove_dynamic_obstacles [options] s.pcd scan.pcd result.pcd\nOptions:");
     desc.add_options()
         ("subdivisions,s", po::value<int>(&subdivisions)->default_value(subdivisions), "number of subdivisions")
+        ("verbose,v", "verbose mode")
         ("help,h", "print help")
     ;
     po::options_description hdesc("Hidden");
@@ -151,6 +153,17 @@ int main(int argc, char **argv)
     po::variables_map vmap;
     po::store(po::command_line_parser(argc, argv).options(desc_all).positional(p).run(), vmap);
     po::notify(vmap);
+
+    if(vmap.count("help"))
+    {
+        std::cout << desc << std::endl;
+        exit(0);
+    }
+
+    if(vmap.count("verbose"))
+    {
+        verbose = true;
+    }
 
     Eigen::Vector4f t;
     Eigen::Quaternionf q;
@@ -184,7 +197,8 @@ int main(int argc, char **argv)
         return 1;
     }
     pcl::fromPCLPointCloud2(s2, s);
-    std::cout << "info: loaded " << s.size() << " points from " << s_fn << std::endl;
+    if(verbose)
+        std::cout << "info: loaded " << s.size() << " points from " << s_fn << std::endl;
 
     if(pcl::io::loadPCDFile(scan_fn, scan2, t, q) == -1)
     {
@@ -192,7 +206,8 @@ int main(int argc, char **argv)
         return 1;
     }
     pcl::fromPCLPointCloud2(scan2, scan);
-    std::cout << "info: loaded " << scan.size() << " points from " << scan_fn << std::endl;
+    if(verbose)
+        std::cout << "info: loaded " << scan.size() << " points from " << scan_fn << std::endl;
 
     removeDynamicObstacles(s, scan, t, q, result, subdivisions);
 
@@ -201,6 +216,7 @@ int main(int argc, char **argv)
         std::cerr << "error: write of " << result_fn << " failed" << std::endl;
         return 1;
     }
-    std::cout << "info: wrote " << result.size() << " points to " << result_fn << std::endl;
+    if(verbose)
+        std::cout << "info: wrote " << result.size() << " points to " << result_fn << std::endl;
 }
 
